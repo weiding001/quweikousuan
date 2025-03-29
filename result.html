@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 练习结果</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .result-card {
+            transition: transform 0.2s;
+        }
+        .result-card:active {
+            transform: scale(0.98);
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .time-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            background-color: #f3f4f6;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">练习结果</div>
+            <div class="ml-2" id="difficultyBadgeContainer">
+                <span id="difficultyBadge" class="difficulty-badge medium">中等</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 成绩展示 -->
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <div class="text-center">
+                <div class="text-6xl font-bold text-blue-500 mb-4" id="finalScore">0</div>
+                <div class="text-xl text-gray-600 mb-6">本次练习得分</div>
+                <div class="flex justify-center space-x-8 mb-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-500" id="correctCount">0</div>
+                        <div class="text-sm text-gray-600">答对题目</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-500" id="wrongCount">0</div>
+                        <div class="text-sm text-gray-600">答错题目</div>
+                    </div>
+                </div>
+                
+                <!-- 时间统计 -->
+                <div class="flex justify-center space-x-8">
+                    <div class="text-center">
+                        <div class="text-lg font-medium text-gray-700" id="totalTime">00:00</div>
+                        <div class="text-xs text-gray-600">总用时</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-medium text-gray-700" id="avgTime">00:00</div>
+                        <div class="text-xs text-gray-600">平均每题</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="grid grid-cols-2 gap-4">
+            <button class="result-card bg-white rounded-xl p-4 shadow-sm text-center" onclick="navigateTo('practice')">
+                <i class="fas fa-redo text-blue-500 text-xl mb-2"></i>
+                <div class="font-medium">再来一次</div>
+            </button>
+            <button class="result-card bg-blue-500 rounded-xl p-4 shadow-sm text-center text-white" onclick="navigateTo('home')">
+                <i class="fas fa-home text-xl mb-2"></i>
+                <div class="font-medium">返回首页</div>
+            </button>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="bg-white rounded-xl p-4 mt-6 shadow-sm">
+            <div class="text-lg font-semibold text-gray-800 mb-4">历史记录</div>
+            <div class="space-y-2" id="historyList">
+                <!-- 历史记录将通过 JavaScript 动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从 localStorage 获取历史记录
+        function getHistory() {
+            const history = localStorage.getItem('mathPracticeHistory');
+            return history ? JSON.parse(history) : [];
+        }
+
+        // 保存历史记录
+        function saveHistory(score, correct, wrong, difficulty, totalTime, avgTime) {
+            const history = getHistory();
+            const newRecord = {
+                date: new Date().toLocaleString(),
+                score: score,
+                correct: correct,
+                wrong: wrong,
+                difficulty: difficulty,
+                totalTime: totalTime,
+                avgTime: avgTime
+            };
+            history.unshift(newRecord);
+            // 只保留最近10条记录
+            if (history.length > 10) {
+                history.pop();
+            }
+            localStorage.setItem('mathPracticeHistory', JSON.stringify(history));
+        }
+
+        // 格式化时间显示 (秒 -> mm:ss)
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${secs}`;
+        }
+
+        // 获取用户统计数据
+        function getUserStats() {
+            const stats = localStorage.getItem('mathUserStats');
+            if (!stats) {
+                // 默认统计数据
+                return {
+                    totalPractices: 0, // 总练习次数
+                    totalProblems: 0, // 总题目数
+                    totalCorrect: 0, // 总正确题数
+                    highestScore: 0, // 最高成绩
+                    fastestAvgTime: Infinity, // 最快平均时间（秒）
+                    currentStreak: 0, // 当前连续天数
+                    maxStreak: 0, // 最大连续天数
+                    lastPracticeDate: null, // 最后练习日期
+                    hardModeHighScore: 0, // 困难模式最高分
+                    reviewedMistakes: 0, // 复习的错题数量
+                    masteredMistakes: 0, // 已掌握的错题数量
+                    usedOperations: [], // 使用过的运算符
+                    unlockedAchievements: [] // 已解锁的成就ID
+                };
+            }
+            return JSON.parse(stats);
+        }
+
+        // 保存用户统计数据
+        function saveUserStats(stats) {
+            localStorage.setItem('mathUserStats', JSON.stringify(stats));
+        }
+
+        // 更新用户统计数据
+        function updateUserStats(score, correct, wrong, difficulty, totalTime, avgTime) {
+            const stats = getUserStats();
+            const today = new Date().toDateString();
+            const operations = getOperationsFromDifficulty(difficulty);
+            
+            // 更新练习统计
+            stats.totalPractices += 1;
+            stats.totalProblems += (correct + wrong);
+            stats.totalCorrect += correct;
+            
+            // 更新最高成绩
+            stats.highestScore = Math.max(stats.highestScore, score);
+            
+            // 更新困难模式最高分
+            if (difficulty === '困难') {
+                stats.hardModeHighScore = Math.max(stats.hardModeHighScore, score);
+            }
+            
+            // 更新最快平均时间
+            stats.fastestAvgTime = Math.min(stats.fastestAvgTime, avgTime);
+            
+            // 更新连续天数
+            const lastDate = stats.lastPracticeDate ? new Date(stats.lastPracticeDate).toDateString() : null;
+            if (lastDate !== today) {
+                if (lastDate && new Date(today) - new Date(lastDate) <= 86400000) { // 1天内
+                    stats.currentStreak += 1;
+                } else if (!lastDate) {
+                    stats.currentStreak = 1;
+                } else {
+                    stats.currentStreak = 1; // 重置连续天数
+                }
+                stats.lastPracticeDate = new Date().toISOString();
+            }
+            stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+            
+            // 更新使用过的运算符
+            operations.forEach(op => {
+                if (!stats.usedOperations.includes(op)) {
+                    stats.usedOperations.push(op);
+                }
+            });
+            
+            // 保存更新后的统计数据
+            saveUserStats(stats);
+            
+            return stats;
+        }
+
+        // 根据难度获取使用的运算符
+        function getOperationsFromDifficulty(difficulty) {
+            if (difficulty === '简单') {
+                return ['+', '-'];
+            } else if (difficulty === '中等') {
+                return ['+', '-', '×'];
+            } else if (difficulty === '困难') {
+                return ['+', '-', '×', '÷'];
+            }
+            return [];
+        }
+
+        // 显示历史记录
+        function displayHistory() {
+            const history = getHistory();
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            history.forEach(record => {
+                const recordElement = document.createElement('div');
+                recordElement.className = 'flex justify-between items-center p-2 bg-gray-50 rounded-lg';
+                
+                // 生成难度徽章
+                let badgeClass = 'difficulty-badge ';
+                if (record.difficulty === '简单') {
+                    badgeClass += 'easy';
+                } else if (record.difficulty === '中等') {
+                    badgeClass += 'medium';
+                } else if (record.difficulty === '困难') {
+                    badgeClass += 'hard';
+                }
+                
+                // 构建时间显示
+                const timeDisplay = record.totalTime ? 
+                    `<span class="time-badge ml-2"><i class="fas fa-clock text-gray-500 mr-1"></i>${formatTime(record.totalTime)}</span>` : '';
+                
+                recordElement.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="text-sm text-gray-600">${record.date}</div>
+                        <span class="${badgeClass} ml-2">${record.difficulty || '中等'}</span>
+                        ${timeDisplay}
+                    </div>
+                    <div class="text-sm font-medium text-gray-800">得分：${record.score}</div>
+                `;
+                historyList.appendChild(recordElement);
+            });
+        }
+
+        // 更新难度徽章
+        function updateDifficultyBadge(difficulty) {
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = difficulty;
+            
+            // 更新徽章样式
+            badge.className = 'difficulty-badge';
+            if (difficulty === '简单') {
+                badge.classList.add('easy');
+            } else if (difficulty === '中等') {
+                badge.classList.add('medium');
+            } else if (difficulty === '困难') {
+                badge.classList.add('hard');
+            }
+        }
+
+        // 检查并显示成就解锁提示
+        function checkNewAchievements() {
+            // 此功能可以在成就系统页面内实现完整逻辑
+            // 这里只检查是否有新解锁的成就，如果有则显示提示
+            const userStats = getUserStats();
+            const unlockedCount = userStats.unlockedAchievements ? userStats.unlockedAchievements.length : 0;
+            
+            // 如果有解锁的成就，显示提示
+            if (unlockedCount > 0) {
+                // 添加查看成就按钮
+                const achievementBtn = document.createElement('button');
+                achievementBtn.className = 'mt-4 bg-yellow-500 text-white px-4 py-2 rounded-lg flex items-center justify-center w-full';
+                achievementBtn.innerHTML = `
+                    <i class="fas fa-trophy mr-2"></i>
+                    <span>查看解锁的成就</span>
+                `;
+                achievementBtn.onclick = function() {
+                    navigateTo('achievements');
+                };
+                
+                // 添加到页面
+                document.querySelector('.content > div:first-child').appendChild(achievementBtn);
+            }
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'achievements': 'achievements.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 初始化页面
+        window.onload = function() {
+            // 从 URL 参数获取成绩、难度和时间信息
+            const urlParams = new URLSearchParams(window.location.search);
+            const score = parseInt(urlParams.get('score')) || 0;
+            const correct = parseInt(urlParams.get('correct')) || 0;
+            const wrong = parseInt(urlParams.get('wrong')) || 0;
+            const difficulty = urlParams.get('difficulty') || '中等';
+            const totalTime = parseInt(urlParams.get('totalTime')) || 0;
+            const avgTime = parseInt(urlParams.get('avgTime')) || 0;
+
+            // 更新显示
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctCount').textContent = correct;
+            document.getElementById('wrongCount').textContent = wrong;
+            document.getElementById('totalTime').textContent = formatTime(totalTime);
+            document.getElementById('avgTime').textContent = formatTime(avgTime);
+            updateDifficultyBadge(difficulty);
+
+            // 更新用户统计数据
+            updateUserStats(score, correct, wrong, difficulty, totalTime, avgTime);
+            
+            // 保存并显示历史记录
+            saveHistory(score, correct, wrong, difficulty, totalTime, avgTime);
+            displayHistory();
+            
+            // 检查成就解锁情况
+            checkNewAchievements();
+        };
+    </script>
+</body>
+</html> 

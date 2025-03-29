@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 成就系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .achievement-card {
+            transition: transform 0.2s;
+        }
+        .achievement-card:hover {
+            transform: translateY(-3px);
+        }
+        .achievement-locked {
+            filter: grayscale(1);
+            opacity: 0.6;
+        }
+        .progress-ring-circle {
+            transform-origin: center;
+            transform: rotate(-90deg);
+            transition: stroke-dashoffset 0.3s;
+        }
+        .badge-new {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 9999px;
+            transform: scale(0.9);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(0.9); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">成就系统</div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full flex items-center">
+                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                <span id="totalPoints" class="font-medium">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 用户等级 -->
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-sm text-gray-600 mb-1">当前等级</div>
+                    <div class="text-3xl font-bold text-blue-600" id="currentLevel">1</div>
+                    <div class="text-xs text-gray-500 mt-1">再获得 <span id="pointsToNextLevel">100</span> 分升级</div>
+                </div>
+                <div class="relative w-20 h-20 flex items-center justify-center">
+                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" stroke-width="3"></circle>
+                        <circle id="progressCircle" class="progress-ring-circle" cx="18" cy="18" r="15" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="94.2" stroke-dashoffset="94.2"></circle>
+                    </svg>
+                    <div class="absolute text-sm font-medium" id="progressPercent">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 成就分类 -->
+        <div class="mb-6">
+            <div class="flex justify-between pb-2 mb-4 border-b border-gray-200">
+                <div class="text-lg font-bold text-gray-800">我的成就</div>
+                <div class="text-sm text-gray-600">已解锁 <span id="unlockedCount">0</span>/<span id="totalCount">12</span></div>
+            </div>
+
+            <!-- 成就类别选项卡 -->
+            <div class="flex space-x-2 mb-4">
+                <button class="achievement-tab px-3 py-1 rounded-lg bg-blue-500 text-white" onclick="filterAchievements('all')">全部</button>
+                <button class="achievement-tab px-3 py-1 rounded-lg bg-gray-200 text-gray-700" onclick="filterAchievements('practice')">练习</button>
+                <button class="achievement-tab px-3 py-1 rounded-lg bg-gray-200 text-gray-700" onclick="filterAchievements('streak')">连续</button>
+                <button class="achievement-tab px-3 py-1 rounded-lg bg-gray-200 text-gray-700" onclick="filterAchievements('mastery')">掌握</button>
+            </div>
+        </div>
+
+        <!-- 成就列表 -->
+        <div id="achievementsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 成就卡片会通过 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 获取用户统计数据
+        function getUserStats() {
+            const stats = localStorage.getItem('mathUserStats');
+            if (!stats) {
+                // 默认统计数据
+                return {
+                    totalPractices: 0, // 总练习次数
+                    totalProblems: 0, // 总题目数
+                    totalCorrect: 0, // 总正确题数
+                    highestScore: 0, // 最高成绩
+                    fastestAvgTime: Infinity, // 最快平均时间（秒）
+                    currentStreak: 0, // 当前连续天数
+                    maxStreak: 0, // 最大连续天数
+                    lastPracticeDate: null, // 最后练习日期
+                    hardModeHighScore: 0, // 困难模式最高分
+                    reviewedMistakes: 0, // 复习的错题数量
+                    masteredMistakes: 0, // 已掌握的错题数量
+                    usedOperations: [], // 使用过的运算符
+                    unlockedAchievements: [] // 已解锁的成就ID
+                };
+            }
+            return JSON.parse(stats);
+        }
+
+        // 保存用户统计数据
+        function saveUserStats(stats) {
+            localStorage.setItem('mathUserStats', JSON.stringify(stats));
+        }
+
+        // 成就定义
+        const achievements = [
+            {
+                id: 'first_practice',
+                title: '初次体验',
+                description: '完成第一次练习',
+                icon: 'fa-solid fa-flag-checkered',
+                color: 'bg-green-100 text-green-700',
+                points: 10,
+                category: 'practice'
+            },
+            {
+                id: 'practice_10',
+                title: '坚持练习',
+                description: '完成10次练习',
+                icon: 'fa-solid fa-dumbbell',
+                color: 'bg-blue-100 text-blue-700',
+                points: 20,
+                category: 'practice'
+            },
+            {
+                id: 'streak_3',
+                title: '坚持不懈',
+                description: '连续3天进行练习',
+                icon: 'fa-solid fa-calendar-check',
+                color: 'bg-purple-100 text-purple-700',
+                points: 30,
+                category: 'streak'
+            },
+            {
+                id: 'streak_7',
+                title: '习惯养成',
+                description: '连续7天进行练习',
+                icon: 'fa-solid fa-calendar-week',
+                color: 'bg-purple-100 text-purple-700',
+                points: 50,
+                category: 'streak'
+            },
+            {
+                id: 'perfect_score',
+                title: '满分学霸',
+                description: '获得满分100分',
+                icon: 'fa-solid fa-award',
+                color: 'bg-yellow-100 text-yellow-700',
+                points: 50,
+                category: 'practice'
+            },
+            {
+                id: 'math_master',
+                title: '数学大师',
+                description: '在困难模式下获得90分以上',
+                icon: 'fa-solid fa-crown',
+                color: 'bg-red-100 text-red-700',
+                points: 100,
+                category: 'mastery'
+            },
+            {
+                id: 'operations_all',
+                title: '运算全能手',
+                description: '使用所有运算符（加减乘除）',
+                icon: 'fa-solid fa-calculator',
+                color: 'bg-blue-100 text-blue-700',
+                points: 30,
+                category: 'practice'
+            },
+            {
+                id: 'speed_demon',
+                title: '速算达人',
+                description: '平均每题用时少于3秒',
+                icon: 'fa-solid fa-bolt',
+                color: 'bg-yellow-100 text-yellow-700',
+                points: 80,
+                category: 'mastery'
+            },
+            {
+                id: 'mistake_master',
+                title: '错题王',
+                description: '掌握10道错题',
+                icon: 'fa-solid fa-check-double',
+                color: 'bg-green-100 text-green-700',
+                points: 40,
+                category: 'mastery'
+            },
+            {
+                id: 'accurate_50',
+                title: '精准计算',
+                description: '正确率达到50%',
+                icon: 'fa-solid fa-bullseye',
+                color: 'bg-indigo-100 text-indigo-700',
+                points: 20,
+                category: 'practice'
+            },
+            {
+                id: 'accurate_80',
+                title: '高精度',
+                description: '正确率达到80%',
+                icon: 'fa-solid fa-bullseye',
+                color: 'bg-indigo-100 text-indigo-700',
+                points: 50,
+                category: 'mastery'
+            },
+            {
+                id: 'problem_100',
+                title: '百题斩',
+                description: '完成100道题目',
+                icon: 'fa-solid fa-clipboard-list',
+                color: 'bg-blue-100 text-blue-700',
+                points: 60,
+                category: 'practice'
+            }
+        ];
+
+        // 检查并解锁成就
+        function checkAchievements() {
+            const stats = getUserStats();
+            const previouslyUnlocked = [...(stats.unlockedAchievements || [])];
+            
+            // 如果没有初始化成就列表，则初始化
+            if (!Array.isArray(stats.unlockedAchievements)) {
+                stats.unlockedAchievements = [];
+            }
+            
+            // 检查每个成就
+            achievements.forEach(achievement => {
+                if (!stats.unlockedAchievements.includes(achievement.id)) {
+                    let unlocked = false;
+                    
+                    // 根据成就类型检查条件
+                    switch (achievement.id) {
+                        case 'first_practice':
+                            unlocked = stats.totalPractices >= 1;
+                            break;
+                        case 'practice_10':
+                            unlocked = stats.totalPractices >= 10;
+                            break;
+                        case 'streak_3':
+                            unlocked = stats.currentStreak >= 3 || stats.maxStreak >= 3;
+                            break;
+                        case 'streak_7':
+                            unlocked = stats.currentStreak >= 7 || stats.maxStreak >= 7;
+                            break;
+                        case 'perfect_score':
+                            unlocked = stats.highestScore >= 100;
+                            break;
+                        case 'math_master':
+                            unlocked = stats.hardModeHighScore >= 90;
+                            break;
+                        case 'operations_all':
+                            const ops = ['+', '-', '×', '÷'];
+                            unlocked = ops.every(op => stats.usedOperations.includes(op));
+                            break;
+                        case 'speed_demon':
+                            unlocked = stats.fastestAvgTime < 3;
+                            break;
+                        case 'mistake_master':
+                            unlocked = stats.masteredMistakes >= 10;
+                            break;
+                        case 'accurate_50':
+                            unlocked = stats.totalProblems > 0 && (stats.totalCorrect / stats.totalProblems) >= 0.5;
+                            break;
+                        case 'accurate_80':
+                            unlocked = stats.totalProblems > 10 && (stats.totalCorrect / stats.totalProblems) >= 0.8;
+                            break;
+                        case 'problem_100':
+                            unlocked = stats.totalProblems >= 100;
+                            break;
+                    }
+                    
+                    if (unlocked) {
+                        stats.unlockedAchievements.push(achievement.id);
+                    }
+                }
+            });
+            
+            // 如果有新解锁的成就，更新最新解锁的成就
+            if (stats.unlockedAchievements.length > previouslyUnlocked.length) {
+                // 找出新解锁的成就
+                const newUnlocked = stats.unlockedAchievements.filter(id => !previouslyUnlocked.includes(id));
+                stats.newlyUnlocked = newUnlocked;
+                saveUserStats(stats);
+                return true;
+            }
+            
+            return false;
+        }
+
+        // 根据成就计算用户等级和积分
+        function calculateUserLevel() {
+            const stats = getUserStats();
+            
+            // 计算总积分
+            let totalPoints = 0;
+            if (Array.isArray(stats.unlockedAchievements)) {
+                stats.unlockedAchievements.forEach(id => {
+                    const achievement = achievements.find(a => a.id === id);
+                    if (achievement) {
+                        totalPoints += achievement.points;
+                    }
+                });
+            }
+            
+            // 计算等级 (每100分升一级)
+            const levelBase = 100;
+            const currentLevel = Math.floor(totalPoints / levelBase) + 1;
+            const pointsToNextLevel = levelBase - (totalPoints % levelBase);
+            const progressPercent = Math.floor((totalPoints % levelBase) / levelBase * 100);
+            
+            return {
+                totalPoints,
+                currentLevel,
+                pointsToNextLevel,
+                progressPercent
+            };
+        }
+
+        // 渲染用户等级信息
+        function renderUserLevel() {
+            const { totalPoints, currentLevel, pointsToNextLevel, progressPercent } = calculateUserLevel();
+            
+            // 更新UI
+            document.getElementById('totalPoints').textContent = totalPoints;
+            document.getElementById('currentLevel').textContent = currentLevel;
+            document.getElementById('pointsToNextLevel').textContent = pointsToNextLevel;
+            document.getElementById('progressPercent').textContent = `${progressPercent}%`;
+            
+            // 更新进度条
+            const circle = document.getElementById('progressCircle');
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            const offset = circumference - (progressPercent / 100) * circumference;
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // 渲染成就列表
+        function renderAchievements(filter = 'all') {
+            const stats = getUserStats();
+            const achievementsList = document.getElementById('achievementsList');
+            const unlockedAchievements = Array.isArray(stats.unlockedAchievements) ? stats.unlockedAchievements : [];
+            const newlyUnlocked = Array.isArray(stats.newlyUnlocked) ? stats.newlyUnlocked : [];
+            
+            // 清空当前列表
+            achievementsList.innerHTML = '';
+            
+            // 过滤成就
+            let filteredAchievements = achievements;
+            if (filter !== 'all') {
+                filteredAchievements = achievements.filter(a => a.category === filter);
+            }
+            
+            // 更新解锁计数
+            let totalFiltered = filteredAchievements.length;
+            let unlockedFiltered = filteredAchievements.filter(a => unlockedAchievements.includes(a.id)).length;
+            
+            document.getElementById('unlockedCount').textContent = filter === 'all' ? unlockedAchievements.length : unlockedFiltered;
+            document.getElementById('totalCount').textContent = filter === 'all' ? achievements.length : totalFiltered;
+            
+            // 更新选项卡样式
+            document.querySelectorAll('.achievement-tab').forEach(tab => {
+                tab.classList.remove('bg-blue-500', 'text-white');
+                tab.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            
+            const clickedTab = document.querySelector(`.achievement-tab[onclick="filterAchievements('${filter}')"]`);
+            if (clickedTab) {
+                clickedTab.classList.remove('bg-gray-200', 'text-gray-700');
+                clickedTab.classList.add('bg-blue-500', 'text-white');
+            }
+            
+            // 生成成就卡片
+            filteredAchievements.forEach(achievement => {
+                const isUnlocked = unlockedAchievements.includes(achievement.id);
+                const isNew = newlyUnlocked.includes(achievement.id);
+                
+                const card = document.createElement('div');
+                card.className = `achievement-card relative bg-white rounded-xl p-4 shadow-sm flex ${isUnlocked ? '' : 'achievement-locked'}`;
+                
+                // 如果是新解锁的成就，添加标记
+                if (isNew) {
+                    const newBadge = document.createElement('div');
+                    newBadge.className = 'badge-new';
+                    newBadge.textContent = '新!';
+                    card.appendChild(newBadge);
+                }
+                
+                card.innerHTML += `
+                    <div class="flex-shrink-0 mr-4">
+                        <div class="${achievement.color} h-12 w-12 rounded-lg flex items-center justify-center">
+                            <i class="${achievement.icon} text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start">
+                            <div class="font-medium ${isUnlocked ? 'text-gray-800' : 'text-gray-500'}">${achievement.title}</div>
+                            <div class="text-xs font-semibold text-yellow-600">${achievement.points}分</div>
+                        </div>
+                        <div class="text-sm ${isUnlocked ? 'text-gray-600' : 'text-gray-400'}">${achievement.description}</div>
+                        ${isUnlocked ? '<div class="text-xs text-green-600 mt-1"><i class="fas fa-check-circle mr-1"></i>已解锁</div>' : ''}
+                    </div>
+                `;
+                
+                achievementsList.appendChild(card);
+            });
+        }
+
+        // 过滤显示不同类别的成就
+        function filterAchievements(filter) {
+            renderAchievements(filter);
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'mistakes': 'mistakes.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 页面加载
+        window.onload = function() {
+            // 检查是否有新解锁的成就
+            checkAchievements();
+            
+            // 渲染用户等级
+            renderUserLevel();
+            
+            // 渲染成就列表
+            renderAchievements('all');
+            
+            // 清除新解锁标记（当用户已查看后）
+            setTimeout(() => {
+                const stats = getUserStats();
+                if (stats.newlyUnlocked) {
+                    delete stats.newlyUnlocked;
+                    saveUserStats(stats);
+                }
+            }, 3000);
+        };
+    </script>
+</body>
+</html> 

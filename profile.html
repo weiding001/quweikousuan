@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 个人中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="utils.js"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .profile-section {
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 16px;
+        }
+        .stats-card {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+            transition: transform 0.2s;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .achievement-badge {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .progress-ring-circle {
+            transform-origin: center;
+            transform: rotate(-90deg);
+            transition: stroke-dashoffset 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">个人中心</div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 用户信息部分 -->
+        <div class="profile-section">
+            <div class="flex items-center mb-4">
+                <div class="w-16 h-16 bg-blue-500 text-white rounded-full flex items-center justify-center text-2xl mr-4">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="text-xl font-semibold text-gray-800">小数学家</div>
+                    <div class="text-sm text-gray-600">
+                        <span class="mr-2"><i class="fas fa-star text-yellow-500 mr-1"></i><span id="level">1</span> 级</span>
+                        <span><i class="fas fa-fire text-orange-500 mr-1"></i>连续 <span id="streak">0</span> 天</span>
+                    </div>
+                </div>
+            </div>
+            <div class="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div id="levelProgress" class="absolute top-0 left-0 h-full bg-blue-500" style="width: 0%"></div>
+            </div>
+            <div class="text-right text-xs text-gray-500 mt-1">还需 <span id="pointsToNextLevel">100</span> 分升级</div>
+        </div>
+
+        <!-- 练习统计部分 -->
+        <div class="profile-section">
+            <div class="text-lg font-semibold text-gray-800 mb-3">练习统计</div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">累计练习</div>
+                    <div class="text-xl font-semibold text-gray-800" id="totalPractices">0</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">总题数</div>
+                    <div class="text-xl font-semibold text-gray-800" id="totalProblems">0</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">正确题数</div>
+                    <div class="text-xl font-semibold text-green-600" id="totalCorrect">0</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">正确率</div>
+                    <div class="text-xl font-semibold text-blue-600" id="accuracy">0%</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">最高分</div>
+                    <div class="text-xl font-semibold text-yellow-600" id="highestScore">0</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-xs text-gray-600 mb-1">最快速度</div>
+                    <div class="text-xl font-semibold text-purple-600" id="fastestTime">0 秒/题</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 成就摘要部分 -->
+        <div class="profile-section">
+            <div class="flex justify-between items-center mb-3">
+                <div class="text-lg font-semibold text-gray-800">成就摘要</div>
+                <div class="text-sm text-blue-600 cursor-pointer" onclick="navigateTo('achievements')">
+                    查看全部
+                    <i class="fas fa-chevron-right text-xs ml-1"></i>
+                </div>
+            </div>
+            <div class="flex overflow-x-auto pb-2 -mx-2 px-2" id="achievementsContainer">
+                <!-- 成就条目会通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <!-- 最近练习记录 -->
+        <div class="profile-section">
+            <div class="flex justify-between items-center mb-3">
+                <div class="text-lg font-semibold text-gray-800">练习记录</div>
+                <div class="text-sm text-blue-600 cursor-pointer" onclick="navigateTo('result')">
+                    查看全部
+                    <i class="fas fa-chevron-right text-xs ml-1"></i>
+                </div>
+            </div>
+            <div class="space-y-2" id="historyContainer">
+                <!-- 历史记录项会通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <!-- 功能按钮区 -->
+        <div class="grid grid-cols-2 gap-3 mt-4">
+            <button class="bg-white rounded-xl p-4 shadow-sm text-center flex flex-col items-center" onclick="navigateTo('practice')">
+                <i class="fas fa-play text-blue-500 text-xl mb-2"></i>
+                <div class="text-sm font-medium text-gray-700">开始练习</div>
+            </button>
+            <button class="bg-white rounded-xl p-4 shadow-sm text-center flex flex-col items-center" onclick="navigateTo('mistakes')">
+                <i class="fas fa-book text-red-500 text-xl mb-2"></i>
+                <div class="text-sm font-medium text-gray-700">错题本</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时初始化
+        window.onload = function() {
+            updateUserInfo();
+            displayRecentAchievements();
+            displayRecentHistory();
+        };
+
+        // 更新用户信息和统计数据
+        function updateUserInfo() {
+            const stats = getUserStats();
+            
+            // 计算等级和进度
+            const { totalPoints, currentLevel, pointsToNextLevel, progressPercent } = calculateUserLevel();
+            
+            // 更新显示
+            document.getElementById('level').textContent = currentLevel;
+            document.getElementById('streak').textContent = stats.currentStreak;
+            document.getElementById('levelProgress').style.width = `${progressPercent}%`;
+            document.getElementById('pointsToNextLevel').textContent = pointsToNextLevel;
+            
+            // 更新统计数据
+            document.getElementById('totalPractices').textContent = stats.totalPractices;
+            document.getElementById('totalProblems').textContent = stats.totalProblems;
+            document.getElementById('totalCorrect').textContent = stats.totalCorrect;
+            
+            // 计算正确率
+            const accuracy = stats.totalProblems > 0 ? Math.round((stats.totalCorrect / stats.totalProblems) * 100) : 0;
+            document.getElementById('accuracy').textContent = `${accuracy}%`;
+            
+            // 最高分和最快速度
+            document.getElementById('highestScore').textContent = stats.highestScore;
+            const fastestTime = stats.fastestAvgTime < Infinity ? stats.fastestAvgTime : 0;
+            document.getElementById('fastestTime').textContent = `${fastestTime} 秒/题`;
+        }
+
+        // 计算用户等级和经验值
+        function calculateUserLevel() {
+            const stats = getUserStats();
+            
+            // 从成就中计算总积分
+            let totalPoints = 0;
+            if (Array.isArray(stats.unlockedAchievements)) {
+                // 这里简化计算，假设每个成就值10分
+                totalPoints = stats.unlockedAchievements.length * 10;
+                
+                // 为了保证至少有一些积分，基于练习次数增加积分
+                totalPoints += stats.totalPractices * 5;
+                
+                // 基于正确题目数增加积分
+                totalPoints += stats.totalCorrect;
+            } else {
+                // 如果没有解锁成就，基于练习和正确题目给予积分
+                totalPoints = stats.totalPractices * 5 + stats.totalCorrect;
+            }
+            
+            // 计算等级（每100分升一级）
+            const levelBase = 100;
+            const currentLevel = Math.floor(totalPoints / levelBase) + 1;
+            const pointsToNextLevel = levelBase - (totalPoints % levelBase);
+            const progressPercent = Math.floor((totalPoints % levelBase) / levelBase * 100);
+            
+            return {
+                totalPoints,
+                currentLevel,
+                pointsToNextLevel,
+                progressPercent
+            };
+        }
+
+        // 显示最近解锁的成就
+        function displayRecentAchievements() {
+            const stats = getUserStats();
+            const achievementsContainer = document.getElementById('achievementsContainer');
+            achievementsContainer.innerHTML = '';
+            
+            // 成就定义
+            const achievementDefinitions = [
+                {
+                    id: 'first_practice',
+                    title: '初次体验',
+                    icon: 'fa-flag-checkered',
+                    color: 'bg-green-100 text-green-600'
+                },
+                {
+                    id: 'perfect_score',
+                    title: '满分学霸',
+                    icon: 'fa-award',
+                    color: 'bg-yellow-100 text-yellow-600'
+                },
+                {
+                    id: 'streak_3',
+                    title: '坚持不懈',
+                    icon: 'fa-calendar-check',
+                    color: 'bg-purple-100 text-purple-600'
+                },
+                {
+                    id: 'math_master',
+                    title: '数学大师',
+                    icon: 'fa-crown',
+                    color: 'bg-red-100 text-red-600'
+                },
+                {
+                    id: 'operations_all',
+                    title: '运算全能手',
+                    icon: 'fa-calculator',
+                    color: 'bg-blue-100 text-blue-600'
+                },
+                {
+                    id: 'speed_demon',
+                    title: '速算达人',
+                    icon: 'fa-bolt',
+                    color: 'bg-yellow-100 text-yellow-600'
+                }
+            ];
+            
+            // 获取用户解锁的成就
+            const unlockedAchievements = Array.isArray(stats.unlockedAchievements) ? stats.unlockedAchievements : [];
+            
+            // 如果没有解锁任何成就，显示默认信息
+            if (unlockedAchievements.length === 0) {
+                achievementsContainer.innerHTML = `
+                    <div class="w-full text-center py-4 text-gray-500">
+                        还没有解锁任何成就，继续加油！
+                    </div>
+                `;
+                return;
+            }
+            
+            // 显示最近的三个成就（或全部，如果少于三个）
+            const recentAchievements = unlockedAchievements.slice(-3).reverse();
+            
+            recentAchievements.forEach(achievementId => {
+                // 查找成就定义
+                const achievement = achievementDefinitions.find(a => a.id === achievementId) || {
+                    title: '神秘成就',
+                    icon: 'fa-question',
+                    color: 'bg-gray-100 text-gray-600'
+                };
+                
+                // 创建成就元素
+                const achievementElement = document.createElement('div');
+                achievementElement.className = 'flex-shrink-0 w-20 mx-2 flex flex-col items-center';
+                achievementElement.innerHTML = `
+                    <div class="achievement-badge ${achievement.color}">
+                        <i class="fas ${achievement.icon} text-2xl"></i>
+                    </div>
+                    <div class="text-xs text-center text-gray-800">${achievement.title}</div>
+                `;
+                
+                achievementsContainer.appendChild(achievementElement);
+            });
+        }
+
+        // 显示最近的练习历史
+        function displayRecentHistory() {
+            const history = getHistory();
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '';
+            
+            // 如果没有历史记录，显示默认信息
+            if (history.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        还没有练习记录，开始你的第一次练习吧！
+                    </div>
+                `;
+                return;
+            }
+            
+            // 显示最近的3条记录
+            const recentHistory = history.slice(0, 3);
+            
+            recentHistory.forEach(record => {
+                // 生成难度徽章
+                let badgeClass = 'difficulty-badge ';
+                if (record.difficulty === '简单') {
+                    badgeClass += 'easy';
+                } else if (record.difficulty === '中等') {
+                    badgeClass += 'medium';
+                } else if (record.difficulty === '困难') {
+                    badgeClass += 'hard';
+                }
+                
+                // 构建时间显示
+                const timeDisplay = record.totalTime ? 
+                    `<span class="text-gray-500 ml-2"><i class="fas fa-clock text-gray-400 mr-1"></i>${formatTime(record.totalTime)}</span>` : '';
+                
+                // 创建历史记录项
+                const historyItem = document.createElement('div');
+                historyItem.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
+                historyItem.innerHTML = `
+                    <div>
+                        <div class="text-sm text-gray-800">${record.date}</div>
+                        <div class="flex items-center mt-1">
+                            <span class="${badgeClass}">${record.difficulty || '中等'}</span>
+                            ${timeDisplay}
+                        </div>
+                    </div>
+                    <div class="text-xl font-bold text-blue-600">${record.score}</div>
+                `;
+                
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'mistakes': 'mistakes.html',
+                'achievements': 'achievements.html',
+                'result': 'result.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+    </script>
+</body>
+</html> 

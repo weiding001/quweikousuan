@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 家长模式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="utils.js"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .parent-section {
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 16px;
+        }
+        .stat-card {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+            transition: transform 0.2s;
+        }
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+        .bar {
+            position: absolute;
+            bottom: 0;
+            width: 12%;
+            background-color: #3b82f6;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s;
+        }
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #6b7280;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .password-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">家长模式</div>
+        </div>
+        <div>
+            <button id="settingsBtn" class="text-gray-600">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 口令验证区域（初始显示） -->
+        <div id="passwordSection" class="parent-section">
+            <div class="text-center py-6">
+                <div class="text-xl font-semibold text-gray-800 mb-4">请输入家长模式口令</div>
+                <input type="password" id="parentPassword" class="w-full max-w-xs mx-auto px-4 py-2 border border-gray-300 rounded-lg" placeholder="请输入口令">
+                <button id="submitPassword" class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg">验证</button>
+                <div class="mt-2 text-sm text-gray-600">默认口令：123456</div>
+            </div>
+        </div>
+
+        <!-- 家长模式内容（验证成功后显示） -->
+        <div id="parentContent" class="hidden">
+            <!-- 学习进度概况 -->
+            <div class="parent-section">
+                <div class="text-lg font-semibold text-gray-800 mb-3">学习进度概况</div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="stat-card">
+                        <div class="text-xs text-gray-600">累计练习</div>
+                        <div class="text-xl font-semibold text-gray-800" id="totalPractices">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-xs text-gray-600">总正确率</div>
+                        <div class="text-xl font-semibold text-gray-800" id="totalAccuracy">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-xs text-gray-600">解锁成就</div>
+                        <div class="text-xl font-semibold text-gray-800" id="achievementCount">0</div>
+                    </div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3 flex items-start">
+                    <i class="fas fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                    <div class="text-sm text-blue-800">
+                        <div class="font-medium mb-1">本周学习情况：</div>
+                        <div id="weekSummary">还没有本周练习记录</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 每日练习统计图表 -->
+            <div class="parent-section">
+                <div class="text-lg font-semibold text-gray-800 mb-3">近一周练习情况</div>
+                <div class="chart-container" id="weeklyChart">
+                    <!-- 图表条形会通过JavaScript动态添加 -->
+                </div>
+            </div>
+
+            <!-- 练习详细记录 -->
+            <div class="parent-section">
+                <div class="text-lg font-semibold text-gray-800 mb-3">练习详细记录</div>
+                <div class="space-y-2" id="historyContainer">
+                    <!-- 历史记录项会通过JavaScript动态添加 -->
+                </div>
+            </div>
+
+            <!-- 难度设置 -->
+            <div class="parent-section">
+                <div class="text-lg font-semibold text-gray-800 mb-3">练习难度设置</div>
+                <div class="flex flex-col space-y-3">
+                    <div class="flex items-center">
+                        <input type="radio" id="diffEasy" name="difficulty" value="简单" class="mr-2">
+                        <label for="diffEasy" class="flex-1">
+                            <span class="difficulty-badge easy mr-2">简单</span>
+                            <span class="text-sm text-gray-700">加减法运算（1-10）</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="diffMedium" name="difficulty" value="中等" class="mr-2">
+                        <label for="diffMedium" class="flex-1">
+                            <span class="difficulty-badge medium mr-2">中等</span>
+                            <span class="text-sm text-gray-700">加减乘法运算（1-20）</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="diffHard" name="difficulty" value="困难" class="mr-2">
+                        <label for="diffHard" class="flex-1">
+                            <span class="difficulty-badge hard mr-2">困难</span>
+                            <span class="text-sm text-gray-700">加减乘除法运算（1-100）</span>
+                        </label>
+                    </div>
+                </div>
+                <button id="saveDifficulty" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg w-full">保存设置</button>
+            </div>
+
+            <!-- 更多操作按钮 -->
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button class="bg-white rounded-xl p-4 shadow-sm text-center flex flex-col items-center" onclick="clearMistakes()">
+                    <i class="fas fa-broom text-red-500 text-xl mb-2"></i>
+                    <div class="text-sm font-medium text-gray-700">清空错题本</div>
+                </button>
+                <button class="bg-white rounded-xl p-4 shadow-sm text-center flex flex-col items-center" onclick="resetStatistics()">
+                    <i class="fas fa-redo text-yellow-500 text-xl mb-2"></i>
+                    <div class="text-sm font-medium text-gray-700">重置统计数据</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置密码的模态框 -->
+    <div id="passwordModal" class="password-modal hidden">
+        <div class="password-container">
+            <div class="text-lg font-semibold text-gray-800 mb-4">设置家长模式口令</div>
+            <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" placeholder="新口令">
+            <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="确认新口令">
+            <div class="flex justify-end mt-4 space-x-2">
+                <button id="cancelPassword" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700">取消</button>
+                <button id="savePassword" class="px-4 py-2 rounded-lg bg-blue-500 text-white">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 默认密码
+        const DEFAULT_PASSWORD = "123456";
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            // 设置事件监听器
+            document.getElementById('submitPassword').addEventListener('click', verifyPassword);
+            document.getElementById('settingsBtn').addEventListener('click', showPasswordModal);
+            document.getElementById('cancelPassword').addEventListener('click', hidePasswordModal);
+            document.getElementById('savePassword').addEventListener('click', saveNewPassword);
+            document.getElementById('saveDifficulty').addEventListener('click', saveDifficultySettings);
+            
+            // 回车键提交密码
+            document.getElementById('parentPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyPassword();
+                }
+            });
+            
+            // 加载当前难度设置
+            loadDifficultySettings();
+        };
+
+        // 验证家长模式密码
+        function verifyPassword() {
+            const passwordInput = document.getElementById('parentPassword');
+            const enteredPassword = passwordInput.value;
+            
+            // 获取保存的密码，如果没有则使用默认密码
+            const savedPassword = localStorage.getItem('parentPassword') || DEFAULT_PASSWORD;
+            
+            if (enteredPassword === savedPassword) {
+                // 密码正确，显示家长模式内容
+                document.getElementById('passwordSection').classList.add('hidden');
+                document.getElementById('parentContent').classList.remove('hidden');
+                
+                // 加载统计数据和图表
+                loadParentModeData();
+            } else {
+                // 密码错误
+                alert('口令错误，请重试！');
+                passwordInput.value = '';
+            }
+        }
+
+        // 显示设置密码模态框
+        function showPasswordModal() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+
+        // 隐藏设置密码模态框
+        function hidePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+        }
+
+        // 保存新密码
+        function saveNewPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!newPassword || newPassword.length < 4) {
+                alert('口令不能少于4位！');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的口令不一致！');
+                return;
+            }
+            
+            // 保存新密码
+            localStorage.setItem('parentPassword', newPassword);
+            alert('家长模式口令已更新！');
+            
+            // 隐藏模态框
+            hidePasswordModal();
+        }
+
+        // 加载难度设置
+        function loadDifficultySettings() {
+            const difficulty = getDifficulty();
+            
+            // 设置对应的单选按钮
+            const difficultyRadios = document.getElementsByName('difficulty');
+            for (let radio of difficultyRadios) {
+                if (radio.value === difficulty) {
+                    radio.checked = true;
+                    break;
+                }
+            }
+        }
+
+        // 保存难度设置
+        function saveDifficultySettings() {
+            const difficultyRadios = document.getElementsByName('difficulty');
+            let selectedDifficulty = '中等'; // 默认值
+            
+            for (let radio of difficultyRadios) {
+                if (radio.checked) {
+                    selectedDifficulty = radio.value;
+                    break;
+                }
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('mathDifficulty', selectedDifficulty);
+            
+            alert(`难度已设置为: ${selectedDifficulty}`);
+        }
+
+        // 加载家长模式数据
+        function loadParentModeData() {
+            const stats = getUserStats();
+            const history = getHistory();
+            
+            // 更新统计概览
+            document.getElementById('totalPractices').textContent = stats.totalPractices;
+            
+            // 计算总正确率
+            const accuracy = stats.totalProblems > 0 ? Math.round((stats.totalCorrect / stats.totalProblems) * 100) : 0;
+            document.getElementById('totalAccuracy').textContent = `${accuracy}%`;
+            
+            // 成就计数
+            const achievementCount = Array.isArray(stats.unlockedAchievements) ? stats.unlockedAchievements.length : 0;
+            document.getElementById('achievementCount').textContent = achievementCount;
+            
+            // 生成本周总结
+            generateWeekSummary(history, stats);
+            
+            // 生成周报表
+            generateWeeklyChart(history);
+            
+            // 显示历史记录
+            displayHistory(history);
+        }
+
+        // 生成本周学习总结
+        function generateWeekSummary(history, stats) {
+            const weekSummaryElement = document.getElementById('weekSummary');
+            
+            // 获取本周的历史记录
+            const today = new Date();
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            
+            // 过滤出本周的记录
+            const weekHistory = history.filter(record => {
+                const recordDate = new Date(record.date);
+                return recordDate >= oneWeekAgo && recordDate <= today;
+            });
+            
+            if (weekHistory.length === 0) {
+                weekSummaryElement.textContent = '还没有本周练习记录，鼓励孩子进行练习吧！';
+                return;
+            }
+            
+            // 计算本周练习次数和平均分
+            const weekCount = weekHistory.length;
+            const weekTotalScore = weekHistory.reduce((sum, record) => sum + record.score, 0);
+            const weekAvgScore = Math.round(weekTotalScore / weekCount);
+            
+            // 计算连续学习天数
+            const streakText = stats.currentStreak > 0 ? 
+                `已连续学习 ${stats.currentStreak} 天` : 
+                '本周尚未形成连续学习习惯';
+            
+            // 拼接总结文本
+            weekSummaryElement.innerHTML = `
+                本周练习了 <span class="font-semibold text-blue-700">${weekCount}</span> 次，
+                平均得分 <span class="font-semibold text-blue-700">${weekAvgScore}</span> 分。
+                ${streakText}。
+            `;
+        }
+
+        // 生成周报表
+        function generateWeeklyChart(history) {
+            const chartContainer = document.getElementById('weeklyChart');
+            chartContainer.innerHTML = '';
+            
+            // 获取最近7天的日期
+            const dates = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push({
+                    date: date,
+                    display: `${date.getMonth() + 1}/${date.getDate()}`,
+                    count: 0,
+                    score: 0
+                });
+            }
+            
+            // 计算每天的练习次数和分数
+            history.forEach(record => {
+                const recordDate = new Date(record.date);
+                
+                dates.forEach(dateObj => {
+                    if (recordDate.toDateString() === dateObj.date.toDateString()) {
+                        dateObj.count++;
+                        dateObj.score += record.score;
+                    }
+                });
+            });
+            
+            // 计算每个柱形的位置和高度
+            const maxCount = Math.max(...dates.map(d => d.count), 1);
+            const barWidth = 90 / dates.length; // 90% of container width
+            const spacing = 10 / (dates.length + 1); // 10% for spacing
+            
+            // 创建柱形图
+            dates.forEach((dateObj, index) => {
+                const barHeight = dateObj.count > 0 ? (dateObj.count / maxCount) * 80 + 20 : 0; // 80% max height + 20% min height
+                const left = spacing + (barWidth + spacing) * index;
+                
+                // 创建柱形
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.left = `${left}%`;
+                bar.style.width = `${barWidth}%`;
+                bar.style.height = `${barHeight}%`;
+                
+                // 如果没有数据，使用灰色
+                if (dateObj.count === 0) {
+                    bar.style.backgroundColor = '#d1d5db';
+                } else {
+                    // 根据得分变色，得分越高颜色越深
+                    const avgScore = dateObj.score / dateObj.count;
+                    if (avgScore >= 80) {
+                        bar.style.backgroundColor = '#3b82f6'; // 蓝色
+                    } else if (avgScore >= 60) {
+                        bar.style.backgroundColor = '#60a5fa'; // 浅蓝色
+                    } else {
+                        bar.style.backgroundColor = '#93c5fd'; // 更浅的蓝色
+                    }
+                }
+                
+                // 添加标签
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.style.left = `${left}%`;
+                label.style.width = `${barWidth}%`;
+                label.textContent = dateObj.display;
+                
+                // 添加提示文本
+                let tooltipText = '没有练习';
+                if (dateObj.count > 0) {
+                    tooltipText = `练习${dateObj.count}次，平均${Math.round(dateObj.score/dateObj.count)}分`;
+                }
+                bar.title = tooltipText;
+                
+                chartContainer.appendChild(bar);
+                chartContainer.appendChild(label);
+            });
+        }
+
+        // 显示历史记录
+        function displayHistory(history) {
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '';
+            
+            // 如果没有历史记录，显示默认信息
+            if (history.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        还没有练习记录
+                    </div>
+                `;
+                return;
+            }
+            
+            // 显示最近的5条记录
+            const recentHistory = history.slice(0, 5);
+            
+            recentHistory.forEach(record => {
+                // 生成难度徽章
+                let badgeClass = 'difficulty-badge ';
+                if (record.difficulty === '简单') {
+                    badgeClass += 'easy';
+                } else if (record.difficulty === '中等') {
+                    badgeClass += 'medium';
+                } else if (record.difficulty === '困难') {
+                    badgeClass += 'hard';
+                }
+                
+                // 构建时间显示
+                const timeDisplay = record.totalTime ? 
+                    `<span class="text-gray-500 ml-2"><i class="fas fa-clock text-gray-400 mr-1"></i>${formatTime(record.totalTime)}</span>` : '';
+                
+                // 计算正确率
+                const total = (record.correct || 0) + (record.wrong || 0);
+                const accuracyPercent = total > 0 ? Math.round((record.correct / total) * 100) : 0;
+                
+                // 创建历史记录项
+                const historyItem = document.createElement('div');
+                historyItem.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
+                historyItem.innerHTML = `
+                    <div>
+                        <div class="text-sm text-gray-800">${record.date}</div>
+                        <div class="flex items-center mt-1">
+                            <span class="${badgeClass}">${record.difficulty || '中等'}</span>
+                            ${timeDisplay}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-bold text-blue-600">${record.score}</div>
+                        <div class="text-xs text-gray-600">正确率: ${accuracyPercent}%</div>
+                    </div>
+                `;
+                
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        // 清空错题本
+        function clearMistakes() {
+            if (confirm('确定要清空错题本吗？此操作不可恢复。')) {
+                localStorage.removeItem('mathMistakes');
+                alert('错题本已清空');
+            }
+        }
+
+        // 重置统计数据
+        function resetStatistics() {
+            if (confirm('确定要重置所有统计数据吗？此操作不可恢复，但不会影响已解锁的成就。')) {
+                const stats = getUserStats();
+                const achievements = stats.unlockedAchievements;
+                
+                // 保留成就，重置其他数据
+                localStorage.setItem('mathUserStats', JSON.stringify({
+                    totalPractices: 0,
+                    totalProblems: 0,
+                    totalCorrect: 0,
+                    highestScore: 0,
+                    fastestAvgTime: Infinity,
+                    currentStreak: 0,
+                    maxStreak: 0,
+                    lastPracticeDate: null,
+                    hardModeHighScore: 0,
+                    reviewedMistakes: 0,
+                    masteredMistakes: 0,
+                    usedOperations: [],
+                    unlockedAchievements: achievements
+                }));
+                
+                // 清空历史记录
+                localStorage.removeItem('mathHistory');
+                
+                alert('统计数据已重置');
+                
+                // 重新加载数据
+                loadParentModeData();
+            }
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'mistakes': 'mistakes.html',
+                'achievements': 'achievements.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+    </script>
+</body>
+</html> 

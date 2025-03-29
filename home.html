@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 首页</title>
+    <meta name="description" content="一个有趣的小学数学口算练习应用">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .menu-item {
+            transition: transform 0.2s;
+        }
+        .menu-item:active {
+            transform: scale(0.95);
+        }
+        /* 添加弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .difficulty-btn {
+            transition: all 0.2s;
+        }
+        .difficulty-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+        }
+        /* 安装提示样式 */
+        #installPrompt {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+            text-align: center;
+            max-width: 90%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="text-lg font-semibold text-gray-800">趣味口算</div>
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center bg-gray-100 px-3 py-1 rounded-full cursor-pointer" onclick="openDifficultyModal()">
+                <i class="fas fa-cog text-gray-600 mr-2"></i>
+                <span class="text-sm text-gray-700">难度: <span id="currentDifficulty">中等</span></span>
+            </div>
+            <i class="fas fa-history text-gray-500 cursor-pointer" onclick="navigateTo('result')"></i>
+            <i class="fas fa-book text-red-500 cursor-pointer" onclick="navigateTo('mistakes')"></i>
+            <i class="fas fa-trophy text-yellow-500 cursor-pointer" onclick="navigateTo('achievements')"></i>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 欢迎信息 -->
+        <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">欢迎回来！</h2>
+            <p class="text-gray-600">今天也要加油练习哦！</p>
+        </div>
+
+        <!-- 功能菜单 -->
+        <div class="grid grid-cols-2 gap-4">
+            <!-- 开始练习 -->
+            <div class="menu-item bg-blue-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="navigateTo('practice')">
+                <i class="fas fa-gamepad text-2xl mb-2"></i>
+                <div class="font-medium">开始练习</div>
+            </div>
+
+            <!-- 查看成绩 -->
+            <div class="menu-item bg-green-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="navigateTo('result')">
+                <i class="fas fa-chart-line text-2xl mb-2"></i>
+                <div class="font-medium">查看成绩</div>
+            </div>
+
+            <!-- 错题本 -->
+            <div class="menu-item bg-yellow-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="navigateTo('mistakes')">
+                <i class="fas fa-book-open text-2xl mb-2"></i>
+                <div class="font-medium">错题本</div>
+            </div>
+
+            <!-- 个人中心 -->
+            <div class="menu-item bg-purple-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="navigateTo('profile')">
+                <i class="fas fa-user-circle text-2xl mb-2"></i>
+                <div class="font-medium">个人中心</div>
+            </div>
+
+            <!-- 家长模式 -->
+            <div class="menu-item bg-orange-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="navigateTo('parent')">
+                <i class="fas fa-users text-2xl mb-2"></i>
+                <div class="font-medium">家长模式</div>
+            </div>
+            
+            <!-- 设置 -->
+            <div class="menu-item bg-gray-500 rounded-xl p-4 shadow-sm text-white text-center" onclick="openDifficultyModal()">
+                <i class="fas fa-cog text-2xl mb-2"></i>
+                <div class="font-medium">设置</div>
+            </div>
+        </div>
+
+        <!-- 安装指南链接 -->
+        <div class="mt-6 text-center">
+            <a href="install_guide.html" class="inline-flex items-center text-blue-600 font-medium">
+                <i class="fas fa-mobile-alt mr-2"></i>
+                <span>如何安装到手机</span>
+                <i class="fas fa-chevron-right text-xs ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- 难度选择弹窗 -->
+    <div id="difficultyModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">选择难度</h3>
+                <i class="fas fa-times text-gray-600 cursor-pointer" onclick="closeDifficultyModal()"></i>
+            </div>
+            <div class="space-y-3 mb-6">
+                <div id="easyBtn" class="difficulty-btn p-3 bg-green-100 rounded-lg flex items-center cursor-pointer" onclick="selectDifficulty('简单')">
+                    <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mr-3">
+                        <i class="fas fa-child"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-800">简单</div>
+                        <div class="text-xs text-gray-600">1-10的数字加减法</div>
+                    </div>
+                </div>
+                <div id="mediumBtn" class="difficulty-btn p-3 bg-blue-100 rounded-lg flex items-center cursor-pointer" onclick="selectDifficulty('中等')">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-800">中等</div>
+                        <div class="text-xs text-gray-600">1-20的数字加减法，简单乘法</div>
+                    </div>
+                </div>
+                <div id="hardBtn" class="difficulty-btn p-3 bg-red-100 rounded-lg flex items-center cursor-pointer" onclick="selectDifficulty('困难')">
+                    <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white mr-3">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-800">困难</div>
+                        <div class="text-xs text-gray-600">1-100的数字加减法，复杂乘除法</div>
+                    </div>
+                </div>
+            </div>
+            <button class="w-full py-2 bg-blue-500 text-white rounded-lg" onclick="closeDifficultyModal()">确定</button>
+        </div>
+    </div>
+
+    <!-- 安装提示 -->
+    <div id="installPrompt">
+        <div class="flex items-center">
+            <span>将应用添加到主屏幕，随时使用！</span>
+            <button id="installBtn" class="ml-2 bg-white text-blue-500 px-3 py-1 rounded-lg text-sm">安装</button>
+            <button id="closeInstallPrompt" class="ml-2 text-white text-sm">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // 难度设置
+        function getDifficulty() {
+            return localStorage.getItem('mathDifficulty') || '中等'; // 默认中等难度
+        }
+
+        // 更新显示当前难度
+        function updateDifficultyDisplay() {
+            const difficulty = getDifficulty();
+            document.getElementById('currentDifficulty').textContent = difficulty;
+        }
+
+        // 打开难度选择弹窗
+        function openDifficultyModal() {
+            const modal = document.getElementById('difficultyModal');
+            modal.style.display = 'flex';
+            
+            // 高亮当前选择的难度
+            const difficulty = getDifficulty();
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (difficulty === '简单') {
+                document.getElementById('easyBtn').classList.add('active');
+            } else if (difficulty === '中等') {
+                document.getElementById('mediumBtn').classList.add('active');
+            } else if (difficulty === '困难') {
+                document.getElementById('hardBtn').classList.add('active');
+            }
+        }
+
+        // 关闭难度选择弹窗
+        function closeDifficultyModal() {
+            const modal = document.getElementById('difficultyModal');
+            modal.style.display = 'none';
+        }
+
+        // 选择难度
+        function selectDifficulty(level) {
+            localStorage.setItem('mathDifficulty', level);
+            
+            // 更新界面显示
+            document.getElementById('currentDifficulty').textContent = level;
+            
+            // 高亮当前选择的难度
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (level === '简单') {
+                document.getElementById('easyBtn').classList.add('active');
+            } else if (level === '中等') {
+                document.getElementById('mediumBtn').classList.add('active');
+            } else if (level === '困难') {
+                document.getElementById('hardBtn').classList.add('active');
+            }
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'practice': 'practice.html',
+                'result': 'result.html',
+                'mistakes': 'mistakes.html',
+                'achievements': 'achievements.html',
+                'review': 'review.html',
+                'profile': 'profile.html',  // 添加个人中心页面
+                'parent': 'parent.html',    // 添加家长模式页面
+                'install': 'install_guide.html' // 添加安装指南页面
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 初始化难度显示
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDifficultyDisplay();
+        });
+
+        // PWA 相关代码
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
+
+        // PWA 安装事件
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const closeInstallPrompt = document.getElementById('closeInstallPrompt');
+
+        // 监听 beforeinstallprompt 事件
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // 阻止 Chrome 67 及更早版本自动显示的安装提示
+            e.preventDefault();
+            // 保存事件，以便稍后触发
+            deferredPrompt = e;
+            // 显示自定义安装提示
+            installPrompt.style.display = 'block';
+        });
+
+        // 安装按钮点击事件
+        installBtn.addEventListener('click', (e) => {
+            // 隐藏提示
+            installPrompt.style.display = 'none';
+            // 显示安装提示
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                // 等待用户响应
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('用户接受安装');
+                    } else {
+                        console.log('用户拒绝安装');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+
+        // 关闭安装提示
+        closeInstallPrompt.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            // 记住用户关闭了提示，短期内不再显示
+            localStorage.setItem('installPromptClosed', Date.now());
+        });
+
+        // 检查是否应该显示安装提示
+        window.addEventListener('load', () => {
+            const lastClosed = localStorage.getItem('installPromptClosed');
+            if (lastClosed) {
+                // 7天内不再显示
+                const daysPassed = (Date.now() - parseInt(lastClosed)) / (1000 * 60 * 60 * 24);
+                if (daysPassed < 7) {
+                    installPrompt.style.display = 'none';
+                }
+            }
+        });
+
+        // 检测是否已安装
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('应用已安装');
+            installPrompt.style.display = 'none';
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 错题复习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .question-card {
+            transition: transform 0.2s;
+        }
+        .question-card:active {
+            transform: scale(0.98);
+        }
+        .input-field {
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .timer {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="exitReview()"></i>
+            <div class="text-lg font-semibold text-gray-800">错题复习</div>
+            <div class="ml-2" id="difficultyBadgeContainer">
+                <span id="difficultyBadge" class="difficulty-badge medium">中等</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600">第 <span id="currentQuestion">1</span>/<span id="totalQuestions">10</span> 题</div>
+            <div class="text-sm text-gray-600">正确: <span id="correctCount">0</span></div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 题目卡片 -->
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <div class="text-center mb-6">
+                <div class="text-4xl font-bold text-gray-800 mb-4" id="question">5 + 3 = ?</div>
+                <input type="number" class="input-field w-32 h-12 text-center text-2xl rounded-lg" id="answer" placeholder="输入答案">
+            </div>
+            <div class="flex justify-center space-x-4">
+                <button class="bg-blue-500 text-white px-6 py-2 rounded-lg" onclick="checkAnswer()">提交</button>
+                <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg" onclick="nextQuestion()">下一题</button>
+            </div>
+        </div>
+
+        <!-- 错题信息 -->
+        <div class="bg-blue-50 rounded-xl p-4 mb-6">
+            <div class="flex flex-col space-y-2">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-blue-500 mr-2"></i>
+                    <div class="text-blue-700" id="mistakeInfo">你在之前的练习中回答错误</div>
+                </div>
+                <div class="flex text-sm">
+                    <span class="w-20 text-gray-600">上次答案:</span>
+                    <span class="font-medium text-red-500" id="lastAnswer">3</span>
+                </div>
+                <div class="flex text-sm">
+                    <span class="w-20 text-gray-600">正确答案:</span>
+                    <span class="font-medium text-green-600" id="correctAnswer">8</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度指示器 -->
+        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+            <div class="bg-blue-500 h-2.5 rounded-full" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <!-- 空状态提示 -->
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-8">
+            <i class="fas fa-clipboard-check text-green-500 text-4xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">复习完成！</h3>
+            <p class="text-gray-600 text-center mb-6">你已经完成了所有错题的复习</p>
+            <div class="flex space-x-4">
+                <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="navigateTo('mistakes')">
+                    返回错题本
+                </button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg" onclick="navigateTo('home')">
+                    返回首页
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 状态变量
+        let currentIndex = 0;
+        let reviewMistakes = [];
+        let correctCount = 0;
+
+        // 从sessionStorage获取要复习的错题
+        function loadReviewMistakes() {
+            const mistakes = sessionStorage.getItem('reviewMistakes');
+            return mistakes ? JSON.parse(mistakes) : [];
+        }
+
+        // 获取错题本数据
+        function getMistakes() {
+            const mistakes = localStorage.getItem('mathMistakes');
+            return mistakes ? JSON.parse(mistakes) : [];
+        }
+
+        // 保存错题本数据
+        function saveMistakes(mistakes) {
+            localStorage.setItem('mathMistakes', JSON.stringify(mistakes));
+        }
+
+        // 更新错题状态
+        function updateMistakeStatus(id, isCorrect) {
+            const allMistakes = getMistakes();
+            const index = allMistakes.findIndex(m => m.id === id);
+            
+            if (index !== -1) {
+                // 如果答对了，增加尝试次数，并可能标记为已掌握
+                allMistakes[index].attempts += 1;
+                
+                // 如果连续两次答对，标记为已掌握
+                if (isCorrect && allMistakes[index].attempts >= 3) {
+                    allMistakes[index].mastered = true;
+                }
+                
+                saveMistakes(allMistakes);
+            }
+        }
+
+        // 显示当前错题
+        function displayCurrentMistake() {
+            // 检查是否还有错题
+            if (currentIndex >= reviewMistakes.length) {
+                showCompletionState();
+                return;
+            }
+            
+            const mistake = reviewMistakes[currentIndex];
+            
+            // 更新UI
+            document.getElementById('question').textContent = mistake.question;
+            document.getElementById('lastAnswer').textContent = mistake.userAnswer;
+            document.getElementById('correctAnswer').textContent = mistake.correctAnswer;
+            document.getElementById('currentQuestion').textContent = currentIndex + 1;
+            document.getElementById('totalQuestions').textContent = reviewMistakes.length;
+            document.getElementById('answer').value = '';
+            
+            // 更新难度徽章
+            updateDifficultyBadge(mistake.difficulty);
+            
+            // 更新进度条
+            const progress = ((currentIndex) / reviewMistakes.length) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            
+            // 显示错题信息
+            const attempts = mistake.attempts;
+            let infoText = '你在之前的练习中回答错误';
+            if (attempts > 1) {
+                infoText = `你已经错了 ${attempts} 次，请认真思考`;
+            }
+            document.getElementById('mistakeInfo').textContent = infoText;
+            
+            // 让答案输入框获取焦点
+            document.getElementById('answer').focus();
+        }
+
+        // 显示完成状态
+        function showCompletionState() {
+            document.querySelector('.content > div:not(#emptyState)').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+        }
+
+        // 更新难度徽章
+        function updateDifficultyBadge(difficulty) {
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = difficulty;
+            
+            badge.className = 'difficulty-badge';
+            if (difficulty === '简单') {
+                badge.classList.add('easy');
+            } else if (difficulty === '中等') {
+                badge.classList.add('medium');
+            } else if (difficulty === '困难') {
+                badge.classList.add('hard');
+            }
+        }
+
+        // 检查答案
+        function checkAnswer() {
+            if (currentIndex >= reviewMistakes.length) return;
+            
+            const userAnswer = parseFloat(document.getElementById('answer').value);
+            
+            if (isNaN(userAnswer)) {
+                alert('请输入有效的数字！');
+                return;
+            }
+            
+            const mistake = reviewMistakes[currentIndex];
+            const correctAnswer = parseFloat(mistake.correctAnswer);
+            
+            if (userAnswer === correctAnswer) {
+                correctCount++;
+                document.getElementById('correctCount').textContent = correctCount;
+                updateMistakeStatus(mistake.id, true);
+                alert('回答正确！');
+                nextQuestion();
+            } else {
+                updateMistakeStatus(mistake.id, false);
+                alert(`回答错误，正确答案是: ${correctAnswer}`);
+            }
+        }
+
+        // 下一题
+        function nextQuestion() {
+            currentIndex++;
+            displayCurrentMistake();
+        }
+
+        // 退出复习
+        function exitReview() {
+            if (confirm('确定要退出复习吗？当前复习进度将不会保存。')) {
+                navigateTo('mistakes');
+            }
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'mistakes': 'mistakes.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载要复习的错题
+            reviewMistakes = loadReviewMistakes();
+            
+            // 检查是否有错题要复习
+            if (reviewMistakes.length === 0) {
+                alert('没有找到需要复习的错题');
+                navigateTo('mistakes');
+                return;
+            }
+            
+            // 初始化UI
+            document.getElementById('totalQuestions').textContent = reviewMistakes.length;
+            document.getElementById('correctCount').textContent = correctCount;
+            
+            // 显示第一道错题
+            displayCurrentMistake();
+            
+            // 添加回车键提交功能
+            document.getElementById('answer').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

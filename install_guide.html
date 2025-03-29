@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 安装指南</title>
+    <meta name="description" content="如何将趣味口算应用安装到手机上">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .guide-section {
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 16px;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .screenshot {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">安装指南</div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 介绍 -->
+        <div class="guide-section">
+            <h2 class="text-xl font-bold text-gray-800 mb-3">将趣味口算安装到手机</h2>
+            <p class="text-gray-600 mb-2">
+                趣味口算是一个渐进式Web应用（PWA），你可以将它安装到手机主屏幕，像原生应用一样使用，还能离线运行。
+            </p>
+            <div class="bg-blue-50 rounded-lg p-3 flex items-start mt-3">
+                <i class="fas fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                <div class="text-sm text-blue-800">
+                    <div class="font-medium mb-1">安装后的优势：</div>
+                    <ul class="list-disc pl-5">
+                        <li>直接从主屏幕启动，无需打开浏览器</li>
+                        <li>全屏显示，没有浏览器地址栏干扰</li>
+                        <li>离线状态下也能使用</li>
+                        <li>更新更方便，无需应用商店审核</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Android安装指南 -->
+        <div class="guide-section">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">Android安装指南</h2>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">1</div>
+                    <div class="font-medium text-gray-800">打开Chrome浏览器访问应用</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    使用Chrome浏览器访问趣味口算应用网址。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">2</div>
+                    <div class="font-medium text-gray-800">点击"添加到主屏幕"提示</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    如果出现自动安装提示，可以直接点击"安装"。如果没有自动提示，请继续下一步。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">3</div>
+                    <div class="font-medium text-gray-800">打开菜单，选择"添加到主屏幕"</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    点击Chrome浏览器右上角的三点菜单，然后选择"添加到主屏幕"或"安装应用"选项。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">4</div>
+                    <div class="font-medium text-gray-800">确认安装</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    在弹出的确认对话框中点击"添加"或"安装"按钮完成安装。
+                </p>
+            </div>
+        </div>
+
+        <!-- iOS安装指南 -->
+        <div class="guide-section">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">iOS安装指南</h2>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">1</div>
+                    <div class="font-medium text-gray-800">使用Safari浏览器访问应用</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    <strong>重要：</strong>iOS设备只能通过Safari浏览器添加到主屏幕，其他浏览器不支持此功能。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">2</div>
+                    <div class="font-medium text-gray-800">点击分享按钮</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    点击Safari底部的分享按钮（方框加上箭头图标）。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">3</div>
+                    <div class="font-medium text-gray-800">选择"添加到主屏幕"</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    在分享菜单中向下滑动，找到并点击"添加到主屏幕"选项。
+                </p>
+            </div>
+            
+            <div class="step">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white mr-2">4</div>
+                    <div class="font-medium text-gray-800">确认添加</div>
+                </div>
+                <p class="text-gray-600 mt-1 ml-8">
+                    可以编辑应用名称，然后点击右上角的"添加"按钮完成安装。
+                </p>
+            </div>
+        </div>
+
+        <!-- 故障排除 -->
+        <div class="guide-section">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">常见问题</h2>
+            
+            <div class="mb-3">
+                <div class="font-medium text-gray-800">为什么没有出现安装提示？</div>
+                <p class="text-gray-600 mt-1">
+                    确保你使用的是最新版本的Chrome(Android)或Safari(iOS)浏览器，并且至少访问过应用两次以上。
+                </p>
+            </div>
+            
+            <div class="mb-3">
+                <div class="font-medium text-gray-800">安装后找不到应用怎么办？</div>
+                <p class="text-gray-600 mt-1">
+                    安装后的应用图标会出现在你的手机主屏幕或应用抽屉中，图标名称为"口算练习"。
+                </p>
+            </div>
+            
+            <div>
+                <div class="font-medium text-gray-800">如何卸载应用？</div>
+                <p class="text-gray-600 mt-1">
+                    和普通应用一样，长按应用图标，然后选择"卸载"或"移除"选项即可。
+                </p>
+            </div>
+        </div>
+
+        <!-- 快速安装按钮 -->
+        <button id="showInstallBtn" class="w-full mt-4 bg-blue-500 text-white py-3 rounded-xl font-medium">
+            立即安装应用
+        </button>
+    </div>
+
+    <script>
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'result': 'result.html',
+                'mistakes': 'mistakes.html',
+                'achievements': 'achievements.html',
+                'profile': 'profile.html',
+                'parent': 'parent.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // PWA 安装变量
+        let deferredPrompt;
+        const installBtn = document.getElementById('showInstallBtn');
+
+        // 监听 beforeinstallprompt 事件
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // 阻止 Chrome 67 及更早版本自动显示的安装提示
+            e.preventDefault();
+            // 保存事件，以便稍后触发
+            deferredPrompt = e;
+            // 显示安装按钮
+            installBtn.style.display = 'block';
+        });
+
+        // 检测是否已安装
+        window.addEventListener('appinstalled', (evt) => {
+            // 应用已安装，更新UI
+            installBtn.textContent = '应用已安装';
+            installBtn.classList.add('bg-green-500');
+            installBtn.disabled = true;
+        });
+
+        // 安装按钮点击事件
+        installBtn.addEventListener('click', (e) => {
+            if (deferredPrompt) {
+                // 显示安装提示
+                deferredPrompt.prompt();
+                // 等待用户响应
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('用户接受安装');
+                        installBtn.textContent = '应用安装成功';
+                        installBtn.classList.add('bg-green-500');
+                        installBtn.disabled = true;
+                    } else {
+                        console.log('用户拒绝安装');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // 不支持自动安装或已经安装
+                alert('请按照上面的指南手动将应用添加到主屏幕');
+            }
+        });
+
+        // 检测平台类型
+        document.addEventListener('DOMContentLoaded', () => {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            // 如果是已安装的PWA环境，隐藏安装按钮
+            if (window.matchMedia('(display-mode: standalone)').matches || 
+                window.navigator.standalone === true) {
+                installBtn.textContent = '应用已安装';
+                installBtn.classList.add('bg-green-500');
+                installBtn.disabled = true;
+            } else if (isIOS && !navigator.standalone) {
+                // iOS设备且不是独立运行模式，提示使用Safari
+                if (!/Safari/.test(navigator.userAgent)) {
+                    alert('请使用Safari浏览器打开本页面，以便添加到主屏幕');
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

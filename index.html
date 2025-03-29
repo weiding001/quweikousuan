@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 原型展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .page-container {
+            width: 375px;
+            height: 812px;
+            margin: 20px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .page-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <h1 class="text-2xl font-bold text-center mb-8">趣味口算 App 原型展示</h1>
+    <div class="flex flex-wrap justify-center">
+        <div class="page-container relative">
+            <div class="page-title">首页</div>
+            <iframe src="home.html" class="w-full h-full"></iframe>
+        </div>
+        <div class="page-container relative">
+            <div class="page-title">练习界面</div>
+            <iframe src="practice.html" class="w-full h-full"></iframe>
+        </div>
+        <div class="page-container relative">
+            <div class="page-title">结果界面</div>
+            <iframe src="result.html" class="w-full h-full"></iframe>
+        </div>
+        <div class="page-container relative">
+            <div class="page-title">个人中心</div>
+            <iframe src="profile.html" class="w-full h-full"></iframe>
+        </div>
+        <div class="page-container relative">
+            <div class="page-title">家长模式</div>
+            <iframe src="parent.html" class="w-full h-full"></iframe>
+        </div>
+    </div>
+</body>
+</html> 

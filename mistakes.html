@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 错题本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .mistake-card {
+            transition: transform 0.2s;
+        }
+        .mistake-card:active {
+            transform: scale(0.98);
+        }
+        .filter-btn {
+            transition: all 0.2s;
+        }
+        .filter-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">错题本</div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="reviewBtn" class="text-sm text-white bg-blue-500 px-3 py-1 rounded-lg" onclick="startReview()">
+                <i class="fas fa-play mr-1"></i>复习错题
+            </button>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 筛选选项 -->
+        <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
+            <div class="text-sm font-medium text-gray-700 mb-2">难度筛选</div>
+            <div class="flex space-x-2">
+                <button id="allFilter" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 active" onclick="filterMistakes('all')">全部</button>
+                <button id="easyFilter" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200" onclick="filterMistakes('简单')">简单</button>
+                <button id="mediumFilter" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200" onclick="filterMistakes('中等')">中等</button>
+                <button id="hardFilter" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200" onclick="filterMistakes('困难')">困难</button>
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <div class="text-sm font-medium text-gray-700">显示已掌握题目</div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="showMastered" class="sr-only peer" onchange="toggleShowMastered()">
+                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="bg-white rounded-xl p-4 mb-6 shadow-sm">
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-xl font-bold text-gray-800" id="totalCount">0</div>
+                    <div class="text-xs text-gray-600">总错题</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-blue-500" id="reviewedCount">0</div>
+                    <div class="text-xs text-gray-600">已复习</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-green-500" id="masteredCount">0</div>
+                    <div class="text-xs text-gray-600">已掌握</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错题列表 -->
+        <div id="mistakesList" class="space-y-4">
+            <!-- 错题将通过JavaScript动态添加 -->
+        </div>
+
+        <!-- 空状态 -->
+        <div id="emptyState" class="empty-state hidden">
+            <i class="fas fa-book text-4xl mb-4"></i>
+            <div class="text-lg">暂无错题记录</div>
+            <div class="text-sm mt-2">开始练习，遇到错题将自动记录</div>
+        </div>
+    </div>
+
+    <script>
+        // 状态变量
+        let currentFilter = 'all';
+        let showMastered = false;
+        let filteredMistakes = [];
+
+        // 获取错题本数据
+        function getMistakes() {
+            const mistakes = localStorage.getItem('mathMistakes');
+            return mistakes ? JSON.parse(mistakes) : [];
+        }
+
+        // 保存错题本数据
+        function saveMistakes(mistakes) {
+            localStorage.setItem('mathMistakes', JSON.stringify(mistakes));
+        }
+
+        // 筛选错题
+        function filterMistakes(filter) {
+            // 更新当前筛选条件
+            currentFilter = filter;
+            
+            // 更新筛选按钮样式
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (filter === 'all') {
+                document.getElementById('allFilter').classList.add('active');
+            } else if (filter === '简单') {
+                document.getElementById('easyFilter').classList.add('active');
+            } else if (filter === '中等') {
+                document.getElementById('mediumFilter').classList.add('active');
+            } else if (filter === '困难') {
+                document.getElementById('hardFilter').classList.add('active');
+            }
+            
+            // 重新显示错题列表
+            displayMistakes();
+        }
+
+        // 切换显示已掌握题目
+        function toggleShowMastered() {
+            showMastered = document.getElementById('showMastered').checked;
+            displayMistakes();
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            const mistakes = getMistakes();
+            
+            // 计算统计数据
+            const totalCount = mistakes.length;
+            const reviewedCount = mistakes.filter(m => m.attempts > 1).length;
+            const masteredCount = mistakes.filter(m => m.mastered).length;
+            
+            // 更新UI
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('reviewedCount').textContent = reviewedCount;
+            document.getElementById('masteredCount').textContent = masteredCount;
+            
+            // 更新复习按钮状态
+            document.getElementById('reviewBtn').disabled = totalCount === 0;
+            if (totalCount === 0) {
+                document.getElementById('reviewBtn').classList.add('opacity-50');
+            } else {
+                document.getElementById('reviewBtn').classList.remove('opacity-50');
+            }
+        }
+
+        // 显示错题列表
+        function displayMistakes() {
+            const mistakes = getMistakes();
+            const mistakesList = document.getElementById('mistakesList');
+            const emptyState = document.getElementById('emptyState');
+            
+            // 清空列表
+            mistakesList.innerHTML = '';
+            
+            // 应用筛选
+            filteredMistakes = mistakes.filter(mistake => {
+                // 应用难度筛选
+                if (currentFilter !== 'all' && mistake.difficulty !== currentFilter) {
+                    return false;
+                }
+                
+                // 应用已掌握筛选
+                if (!showMastered && mistake.mastered) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // 显示空状态或错题列表
+            if (filteredMistakes.length === 0) {
+                mistakesList.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                mistakesList.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                
+                // 渲染错题列表
+                filteredMistakes.forEach(mistake => {
+                    const mistakeCard = document.createElement('div');
+                    mistakeCard.className = 'mistake-card bg-white rounded-xl p-4 shadow-sm';
+                    
+                    // 生成难度徽章
+                    let badgeClass = 'difficulty-badge ';
+                    if (mistake.difficulty === '简单') {
+                        badgeClass += 'easy';
+                    } else if (mistake.difficulty === '中等') {
+                        badgeClass += 'medium';
+                    } else if (mistake.difficulty === '困难') {
+                        badgeClass += 'hard';
+                    }
+                    
+                    // 格式化日期
+                    const date = new Date(mistake.timestamp);
+                    const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                    
+                    mistakeCard.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center">
+                                <span class="${badgeClass} mr-2">${mistake.difficulty}</span>
+                                <span class="text-xs text-gray-500">${formattedDate}</span>
+                            </div>
+                            <div class="flex items-center">
+                                ${mistake.mastered ? 
+                                    `<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full mr-2">已掌握</span>` : 
+                                    `<button class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full mr-2" onclick="markAsMastered('${mistake.id}')">标记已掌握</button>`}
+                                <button class="text-gray-400 hover:text-red-500" onclick="deleteMistake('${mistake.id}')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-lg font-medium text-gray-800 mb-2">${mistake.question}</div>
+                        <div class="flex flex-col space-y-1 text-sm">
+                            <div class="flex">
+                                <span class="w-20 text-gray-600">正确答案:</span>
+                                <span class="font-medium text-green-600">${mistake.correctAnswer}</span>
+                            </div>
+                            <div class="flex">
+                                <span class="w-20 text-gray-600">你的答案:</span>
+                                <span class="font-medium text-red-500">${mistake.userAnswer}</span>
+                            </div>
+                            <div class="flex">
+                                <span class="w-20 text-gray-600">错误次数:</span>
+                                <span class="font-medium">${mistake.attempts}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    mistakesList.appendChild(mistakeCard);
+                });
+            }
+            
+            // 更新统计信息
+            updateStats();
+        }
+
+        // 标记错题为已掌握
+        function markAsMastered(id) {
+            const mistakes = getMistakes();
+            const index = mistakes.findIndex(m => m.id === id);
+            
+            if (index !== -1) {
+                mistakes[index].mastered = true;
+                saveMistakes(mistakes);
+                displayMistakes();
+            }
+        }
+
+        // 删除错题
+        function deleteMistake(id) {
+            if (confirm('确定要删除这道错题吗？')) {
+                const mistakes = getMistakes();
+                const newMistakes = mistakes.filter(m => m.id !== id);
+                saveMistakes(newMistakes);
+                displayMistakes();
+            }
+        }
+
+        // 开始复习错题
+        function startReview() {
+            if (filteredMistakes.length === 0) {
+                alert('当前筛选条件下没有可复习的错题');
+                return;
+            }
+            
+            // 将当前筛选后的错题存入sessionStorage用于复习
+            sessionStorage.setItem('reviewMistakes', JSON.stringify(filteredMistakes));
+            // 跳转到复习页面
+            navigateTo('review');
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'practice': 'practice.html',
+                'result': 'result.html',
+                'review': 'review.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            displayMistakes();
+        });
+    </script>
+</body>
+</html> 

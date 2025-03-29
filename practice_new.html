@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味口算 - 练习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- 引入公共工具函数库 -->
+    <script src="utils.js"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-bar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .question-card {
+            transition: transform 0.2s;
+        }
+        .question-card:active {
+            transform: scale(0.98);
+        }
+        .input-field {
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: white;
+        }
+        .difficulty-badge.easy {
+            background-color: #10b981;
+        }
+        .difficulty-badge.medium {
+            background-color: #3b82f6;
+        }
+        .difficulty-badge.hard {
+            background-color: #ef4444;
+        }
+        .timer {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar h-14 flex items-center justify-between px-4">
+        <div class="flex items-center">
+            <i class="fas fa-arrow-left text-gray-600 mr-4" onclick="navigateTo('home')"></i>
+            <div class="text-lg font-semibold text-gray-800">口算练习</div>
+            <div class="ml-2" id="difficultyBadgeContainer">
+                <span id="difficultyBadge" class="difficulty-badge medium">中等</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600">第 <span id="currentQuestion">1</span>/10 题</div>
+            <div class="text-sm text-gray-600">得分：<span id="score">0</span></div>
+            <div class="text-sm text-gray-600 flex items-center">
+                <i class="fas fa-clock text-gray-500 mr-1"></i>
+                <span id="timer" class="timer">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="content">
+        <!-- 题目卡片 -->
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <div class="text-center mb-6">
+                <div class="text-4xl font-bold text-gray-800 mb-4" id="question">5 + 3 = ?</div>
+                <input type="number" class="input-field w-32 h-12 text-center text-2xl rounded-lg" id="answer" placeholder="输入答案">
+            </div>
+            <div class="flex justify-center space-x-4">
+                <button class="bg-blue-500 text-white px-6 py-2 rounded-lg" onclick="checkAnswer()">提交</button>
+                <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg" onclick="nextQuestion()">下一题</button>
+            </div>
+        </div>
+
+        <!-- 提示信息 -->
+        <div class="bg-blue-50 rounded-xl p-4 mb-6">
+            <div class="flex items-center">
+                <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                <div class="text-blue-700" id="hint">提示：仔细计算，不要着急！</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        let score = 0;
+        let questions = [];
+        let correctCount = 0;
+        let wrongCount = 0;
+        
+        // 计时相关变量
+        let startTime; // 练习开始时间
+        let questionStartTime; // 当前题目开始时间
+        let timerInterval; // 计时器间隔
+        let totalTime = 0; // 总用时（毫秒）
+        let questionTimes = []; // 每题用时（毫秒）
+
+        // 根据难度更新UI
+        function updateDifficultyUI() {
+            const difficulty = getDifficulty();
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = difficulty;
+            
+            // 更新徽章样式
+            badge.className = 'difficulty-badge';
+            if (difficulty === '简单') {
+                badge.classList.add('easy');
+            } else if (difficulty === '中等') {
+                badge.classList.add('medium');
+            } else if (difficulty === '困难') {
+                badge.classList.add('hard');
+            }
+            
+            // 更新提示信息
+            const hint = document.getElementById('hint');
+            if (difficulty === '简单') {
+                hint.textContent = '提示：专注于基础加减法，注意正负号！';
+            } else if (difficulty === '中等') {
+                hint.textContent = '提示：仔细计算，不要着急！';
+            } else if (difficulty === '困难') {
+                hint.textContent = '提示：挑战自我，解决复杂计算！';
+            }
+        }
+
+        // 启动计时器
+        function startTimer() {
+            startTime = performance.now();
+            questionStartTime = startTime;
+            
+            // 更新UI上的计时器
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        }
+        
+        // 更新计时器显示
+        function updateTimerDisplay() {
+            const currentTime = performance.now();
+            const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+            const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+            
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        // 记录当前题目的用时
+        function recordQuestionTime() {
+            const currentTime = performance.now();
+            const questionTime = currentTime - questionStartTime;
+            questionTimes.push(questionTime);
+            totalTime += questionTime;
+            
+            // 更新下一题的开始时间
+            questionStartTime = currentTime;
+        }
+
+        // 根据难度生成随机题目
+        function generateQuestionByDifficulty() {
+            const difficulty = getDifficulty();
+            let num1, num2, operators, operator, answer;
+            
+            // 根据难度设置参数
+            if (difficulty === '简单') {
+                // 简单：1-10的加减法
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                operators = ['+', '-'];
+            } else if (difficulty === '中等') {
+                // 中等：1-20的加减法和简单乘法
+                num1 = Math.floor(Math.random() * 20) + 1;
+                num2 = Math.floor(Math.random() * 20) + 1;
+                operators = ['+', '-', '×'];
+            } else if (difficulty === '困难') {
+                // 困难：1-100的加减法、复杂乘法和简单除法
+                num1 = Math.floor(Math.random() * 100) + 1;
+                num2 = Math.floor(Math.random() * 20) + 1;
+                operators = ['+', '-', '×', '÷'];
+                
+                // 确保除法有整数结果
+                if (operators[Math.floor(Math.random() * operators.length)] === '÷') {
+                    num1 = num2 * (Math.floor(Math.random() * 10) + 1); // 确保能被整除
+                }
+            }
+            
+            // 选择运算符
+            operator = operators[Math.floor(Math.random() * operators.length)];
+            
+            // 计算答案
+            switch(operator) {
+                case '+':
+                    answer = num1 + num2;
+                    break;
+                case '-':
+                    // 对于简单难度，确保结果为正数
+                    if (difficulty === '简单' && num1 < num2) {
+                        [num1, num2] = [num2, num1]; // 交换两个数，确保结果为正
+                    }
+                    answer = num1 - num2;
+                    break;
+                case '×':
+                    answer = num1 * num2;
+                    break;
+                case '÷':
+                    answer = num1 / num2;
+                    break;
+            }
+
+            return {
+                question: `${num1} ${operator} ${num2} = ?`,
+                answer: answer
+            };
+        }
+
+        // 初始化题目
+        function initQuestions() {
+            questions = [];
+            for (let i = 0; i < 10; i++) {
+                questions.push(generateQuestionByDifficulty());
+            }
+            displayQuestion();
+            
+            // 启动计时器
+            startTimer();
+        }
+
+        // 显示当前题目
+        function displayQuestion() {
+            if (currentQuestion <= 10) {
+                document.getElementById('question').textContent = questions[currentQuestion - 1].question;
+                document.getElementById('currentQuestion').textContent = currentQuestion;
+                document.getElementById('answer').value = '';
+                
+                // 如果不是第一题，则记录上一题的用时
+                if (questionStartTime !== startTime) {
+                    recordQuestionTime();
+                }
+            } else {
+                // 结束计时
+                clearInterval(timerInterval);
+                
+                // 计算平均每题用时（毫秒）
+                const avgTimePerQuestion = totalTime / questionTimes.length;
+                
+                // 将时间转换为秒
+                const totalTimeSeconds = Math.floor(totalTime / 1000);
+                const avgTimeSeconds = Math.floor(avgTimePerQuestion / 1000);
+                
+                // 练习结束，跳转到结果页面
+                const difficulty = getDifficulty();
+                const url = `result.html?score=${score}&correct=${correctCount}&wrong=${wrongCount}&difficulty=${encodeURIComponent(difficulty)}&totalTime=${totalTimeSeconds}&avgTime=${avgTimeSeconds}`;
+                window.location.href = url;
+            }
+        }
+
+        // 检查答案
+        function checkAnswer() {
+            const userAnswer = parseFloat(document.getElementById('answer').value);
+            
+            if (isNaN(userAnswer)) {
+                alert('请输入有效的数字！');
+                return;
+            }
+            
+            const correctAnswer = questions[currentQuestion - 1].answer;
+            const currentQuestionText = questions[currentQuestion - 1].question;
+            
+            if (userAnswer === correctAnswer) {
+                score += 10;
+                correctCount++;
+                document.getElementById('score').textContent = score;
+                
+                // 检查是否解锁新成就（每次得分增加时检查）
+                checkAchievements(score);
+                
+                alert('回答正确！');
+                nextQuestion();
+            } else {
+                wrongCount++;
+                // 记录错题
+                addToMistakes(currentQuestionText, correctAnswer, userAnswer);
+                alert(`回答错误，正确答案是: ${correctAnswer}`);
+            }
+        }
+
+        // 下一题
+        function nextQuestion() {
+            currentQuestion++;
+            displayQuestion();
+        }
+
+        // 页面导航
+        function navigateTo(page) {
+            const pages = {
+                'home': 'home.html',
+                'result': 'result.html',
+                'mistakes': 'mistakes.html',
+                'achievements': 'achievements.html'
+            };
+            
+            const targetUrl = pages[page];
+            if (targetUrl) {
+                // 清除计时器
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDifficultyUI();
+            initQuestions();
+            
+            // 添加回车键提交功能
+            document.getElementById('answer').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
